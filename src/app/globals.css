@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/* Purely Personal brand tokens — workshop / install-guide system */
+:root {
+  --pp-red: #e90d41;
+  --pp-red-deep: #c70a38;
+  --pp-red-soft: #fce8ed;
+  --pp-red-glow: rgba(233, 13, 65, 0.15);
+  --pp-red-dim: rgba(233, 13, 65, 0.12);
+
+  --dark: #0f0f10;
+  --dark-card: #1a1a1d;
+  --dark-elevated: #141416;
+  --dark-border: #2a2a2e;
+
+  --text: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.65);
+  --text-faint: rgba(255, 255, 255, 0.4);
+
+  /* Aliases used in components */
+  --background: var(--dark);
+  --foreground: var(--text);
+  --border: var(--dark-border);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --bg-panel: var(--dark-card);
+  --bg-elevated: var(--dark-elevated);
+  --accent: var(--pp-red);
+  --accent-dim: var(--pp-red-dim);
+}
+
+@theme inline {
+  --color-background: var(--dark);
+  --color-foreground: var(--text);
+  --color-muted: var(--text-dim);
+  --color-accent: var(--pp-red);
+  --color-panel: var(--dark-card);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-rethink);
+  --font-mono: var(--font-jetbrains);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: var(--font-inter), -apple-system, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  z-index: 0;
+}
+
+.glow-orb {
+  position: fixed;
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--pp-red-glow) 0%, transparent 68%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-jetbrains), Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--pp-red);
+}
+
+.pp-eyebrow-pill {
+  background: var(--pp-red-dim);
+  border: 1px solid rgba(233, 13, 65, 0.25);
+  padding: 6px 14px;
+  border-radius: 4px;
+}
+
+.prose-danny p {
+  margin: 0 0 0.85rem;
+  line-height: 1.55;
+}
+
+.prose-danny p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-danny strong {
+  color: var(--pp-red);
+  font-weight: 700;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+}
