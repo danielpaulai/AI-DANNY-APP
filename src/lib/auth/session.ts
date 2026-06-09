@@ -3,6 +3,13 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/server";
 
 const WORKSPACE_METADATA_KEY = "workspaceId";
 
+function isMissingMembersTable(error: { code?: string; message?: string }) {
+  return (
+    error.code === "PGRST205" ||
+    error.message?.includes("workspace_members") === true
+  );
+}
+
 export async function getClerkUserId(): Promise<string | null> {
   const { userId } = await auth();
   return userId;
@@ -26,7 +33,7 @@ export async function getWorkspaceIdFromSession(): Promise<string | null> {
       .eq("clerk_user_id", userId)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error && !isMissingMembersTable(error)) throw error;
     if (data?.workspace_id) return data.workspace_id;
   }
 
@@ -42,7 +49,7 @@ export async function linkUserToWorkspace(
       .from("workspace_members")
       .upsert({ clerk_user_id: userId, workspace_id: workspaceId });
 
-    if (error) throw error;
+    if (error && !isMissingMembersTable(error)) throw error;
   }
 
   const client = await clerkClient();

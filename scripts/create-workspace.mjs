@@ -3,27 +3,34 @@
  * Create a client workspace in Supabase (production).
  * Usage: node scripts/create-workspace.mjs --id acme --code acme-2026 --founder "Jane Doe"
  */
-import fs from "node:fs/promises";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-async function loadEnv() {
+function loadEnv() {
+  const envPath = path.join(root, ".env.local");
   try {
-    const raw = await fs.readFile(path.join(root, ".env.local"), "utf8");
-    for (const line of raw.split("\n")) {
+    const raw = fs.readFileSync(envPath, "utf8");
+    let loaded = 0;
+    for (const line of raw.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
       const eq = trimmed.indexOf("=");
       if (eq <= 0) continue;
       const key = trimmed.slice(0, eq).trim();
       const value = trimmed.slice(eq + 1).trim();
-      if (key && value) process.env[key] = value;
+      if (key && value) {
+        process.env[key] = value;
+        loaded++;
+      }
     }
-  } catch {
-    /* use existing env */
+    return loaded;
+  } catch (err) {
+    console.error(`Could not read ${envPath}:`, err instanceof Error ? err.message : err);
+    return 0;
   }
 }
 
@@ -33,7 +40,10 @@ function arg(name) {
 }
 
 async function loadFromJson(file) {
-  const raw = await fs.readFile(path.join(root, "data", "workspaces", file), "utf8");
+  const raw = await fs.promises.readFile(
+    path.join(root, "data", "workspaces", file),
+    "utf8",
+  );
   const ws = JSON.parse(raw);
   return {
     id: ws.id,
@@ -48,12 +58,15 @@ async function loadFromJson(file) {
   };
 }
 
-await loadEnv();
+const loaded = loadEnv();
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) {
-  console.error("Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local");
+  console.error(
+    `Supabase env missing after loading ${loaded} vars from .env.local.`,
+  );
+  console.error("Need NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
   process.exit(1);
 }
 

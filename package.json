@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "rm -rf .next && next dev -p 3001",
     "build": "npm run ingest && next build",
     "start": "next start",
     "lint": "eslint",

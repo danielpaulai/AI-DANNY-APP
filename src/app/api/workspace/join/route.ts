@@ -1,28 +1,31 @@
-import {
-  getClerkUserId,
-  getWorkspaceIdFromSession,
-  linkUserToWorkspace,
-} from "@/lib/auth/session";
+import { getClerkUserId, linkUserToWorkspace } from "@/lib/auth/session";
 import { findWorkspaceByCode } from "@/lib/workspaces/store";
 
 export async function POST(req: Request) {
-  const userId = await getClerkUserId();
-  if (!userId) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const userId = await getClerkUserId();
+    if (!userId) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { accessCode } = (await req.json()) as { accessCode?: string };
+    if (!accessCode?.trim()) {
+      return Response.json({ error: "Access code required" }, { status: 400 });
+    }
+
+    const workspace = await findWorkspaceByCode(accessCode.trim());
+    if (!workspace) {
+      return Response.json({ error: "Invalid access code" }, { status: 404 });
+    }
+
+    await linkUserToWorkspace(userId, workspace.id);
+
+    const { accessCode: _, ...safe } = workspace;
+    return Response.json({ workspace: safe });
+  } catch (err) {
+    console.error("workspace/join failed:", err);
+    const message =
+      err instanceof Error ? err.message : "Could not link workspace";
+    return Response.json({ error: message }, { status: 500 });
   }
-
-  const { accessCode } = (await req.json()) as { accessCode?: string };
-  if (!accessCode?.trim()) {
-    return Response.json({ error: "Access code required" }, { status: 400 });
-  }
-
-  const workspace = await findWorkspaceByCode(accessCode.trim());
-  if (!workspace) {
-    return Response.json({ error: "Invalid access code" }, { status: 404 });
-  }
-
-  await linkUserToWorkspace(userId, workspace.id);
-
-  const { accessCode: _, ...safe } = workspace;
-  return Response.json({ workspace: safe });
 }

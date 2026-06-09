@@ -36,8 +36,14 @@ function OnboardingForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accessCode: code }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not join workspace");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string"
+            ? data.error
+            : "Could not join workspace",
+        );
+      }
       toast.success(`Welcome, ${data.workspace.founderName}`);
       router.push("/app");
       router.refresh();
@@ -93,9 +99,9 @@ function OnboardingForm() {
       </form>
 
       <p className="mt-6 text-xs leading-relaxed text-[var(--text-faint)]">
-        Demo code:{" "}
+        Your code:{" "}
         <code className="font-[family-name:var(--font-jetbrains)] text-[var(--pp-red)]">
-          purely-personal-demo
+          purely-personal-danny
         </code>
       </p>
     </div>
