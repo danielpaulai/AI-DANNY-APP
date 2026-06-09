@@ -14,8 +14,13 @@ async function loadEnv() {
   try {
     const raw = await fs.readFile(path.join(root, ".env.local"), "utf8");
     for (const line of raw.split("\n")) {
-      const m = line.match(/^([A-Z_]+)=(.*)$/);
-      if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim();
+      if (key && value) process.env[key] = value;
     }
   } catch {
     /* use existing env */
@@ -27,6 +32,22 @@ function arg(name) {
   return i >= 0 ? process.argv[i + 1] : "";
 }
 
+async function loadFromJson(file) {
+  const raw = await fs.readFile(path.join(root, "data", "workspaces", file), "utf8");
+  const ws = JSON.parse(raw);
+  return {
+    id: ws.id,
+    accessCode: ws.accessCode,
+    founderName: ws.founderName,
+    name: ws.name,
+    business: ws.business,
+    icp: ws.icp,
+    positioning: ws.positioning,
+    voiceNotes: ws.voiceNotes,
+    stage: ws.stage,
+  };
+}
+
 await loadEnv();
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -36,15 +57,31 @@ if (!url || !key) {
   process.exit(1);
 }
 
-const id = arg("id");
-const accessCode = arg("code");
-const founderName = arg("founder");
-const name = arg("name") || `${founderName}'s Workspace`;
-const business = arg("business") || "";
-const icp = arg("icp") || "";
-const positioning = arg("positioning") || "";
-const voiceNotes = arg("voice") || "";
-const stage = arg("stage") || "";
+const fromJson = arg("from-json");
+let id = arg("id");
+let accessCode = arg("code");
+let founderName = arg("founder");
+let name = arg("name");
+let business = arg("business") || "";
+let icp = arg("icp") || "";
+let positioning = arg("positioning") || "";
+let voiceNotes = arg("voice") || "";
+let stage = arg("stage") || "";
+
+if (fromJson) {
+  const ws = await loadFromJson(fromJson);
+  id = ws.id;
+  accessCode = ws.accessCode;
+  founderName = ws.founderName;
+  name = ws.name;
+  business = ws.business;
+  icp = ws.icp;
+  positioning = ws.positioning;
+  voiceNotes = ws.voiceNotes;
+  stage = ws.stage;
+}
+
+if (!name) name = `${founderName}'s Workspace`;
 
 if (!id || !accessCode || !founderName) {
   console.error(`Usage:
@@ -53,7 +90,10 @@ if (!id || !accessCode || !founderName) {
     --code unique-access-code \\
     --founder "Founder Name" \\
     [--name "Workspace Name"] \\
-    [--business "..."] [--icp "..."] [--positioning "..."] [--voice "..."] [--stage "..."]`);
+    [--business "..."] [--icp "..."] [--positioning "..."] [--voice "..."] [--stage "..."]
+
+  Or from JSON:
+  node scripts/create-workspace.mjs --from-json daniel-paul.json`);
   process.exit(1);
 }
 
