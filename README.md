@@ -68,9 +68,42 @@ npm run reindex   # Re-ingest brain + append growth log
 
 Future: pull curated exports from Obsidian vault, question analytics, feedback loops.
 
-## Deploy
+## Deploy (Vercel)
 
-Vercel-ready. Set `ANTHROPIC_API_KEY` and Clerk keys in project env. Add Clerk via [Vercel Marketplace](https://vercel.com/integrations/clerk) for auto-provisioned env vars. Migrate workspaces/sessions to Supabase for production persistence.
+Repo: [github.com/danielpaulai/AI-DANNY-APP](https://github.com/danielpaulai/AI-DANNY-APP)
+
+### Env vars (Production in Vercel dashboard)
+
+Copy all values from `.env.local`:
+
+- `ANTHROPIC_API_KEY`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+- Clerk route vars (`NEXT_PUBLIC_CLERK_SIGN_IN_URL`, etc.)
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `AI_MODEL` (optional)
+
+Build runs `npm run ingest` automatically before `next build`.
+
+### After deploy
+
+1. **Clerk** → add your Vercel domain under **Domains** (e.g. `ai-danny-app.vercel.app`)
+2. **Health check** → `GET /api/health` should return `{ "status": "ok" }`
+3. **Test flow** → sign up → onboarding code → chat
+
+### Add a production client workspace
+
+```bash
+npm run create-workspace -- \
+  --id client-slug \
+  --code their-access-code \
+  --founder "Founder Name" \
+  --business "What they do" \
+  --icp "Their ICP" \
+  --positioning "Positioning line" \
+  --stage "Post-workshop"
+```
+
+Requires Supabase env vars. Share the access code with the client after they create a Clerk account.
 
 ## License
 

@@ -18,6 +18,7 @@ function getMessageText(message: UIMessage): string {
 export default function ChatPanel() {
   const [skillId, setSkillId] = useState<SkillId>("general");
   const [input, setInput] = useState("");
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const skill = getSkill(skillId);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -30,8 +31,17 @@ export default function ChatPanel() {
     [skillId],
   );
 
-  const { messages, sendMessage, status } = useChat({ transport });
+  const { messages, sendMessage, setMessages, status } = useChat({ transport });
   const isLoading = status === "submitted" || status === "streaming";
+
+  useEffect(() => {
+    fetch("/api/messages")
+      .then((r) => (r.ok ? r.json() : { messages: [] }))
+      .then((data) => {
+        if (data.messages?.length) setMessages(data.messages);
+      })
+      .finally(() => setHistoryLoaded(true));
+  }, [setMessages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -45,6 +55,14 @@ export default function ChatPanel() {
     if (!trimmed || isLoading) return;
     setInput("");
     await sendMessage({ text: trimmed });
+  }
+
+  if (!historyLoaded) {
+    return (
+      <div className="flex flex-1 items-center justify-center text-sm text-[var(--text-dim)]">
+        Loading conversation…
+      </div>
+    );
   }
 
   return (
