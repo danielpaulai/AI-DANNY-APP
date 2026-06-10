@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import BrandMark from "@/components/brand/BrandMark";
+import { DANNY_TAGLINE } from "@/lib/danny/presence";
 
 function OnboardingForm() {
   const router = useRouter();
@@ -64,15 +65,14 @@ function OnboardingForm() {
       </Link>
 
       <div className="mt-6">
-        <BrandMark size="sm" showTagline />
+        <BrandMark size="sm" />
       </div>
 
       <h1 className="mt-6 font-[family-name:var(--font-rethink)] text-3xl font-extrabold tracking-tight">
         Link your workspace
       </h1>
       <p className="mt-2 text-sm text-[var(--text-dim)]">
-        Enter the workspace code from your Purely Personal Branding onboarding.
-        This links your account to your private AI Danny workspace.
+        {DANNY_TAGLINE} Enter the access code from your onboarding email.
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">

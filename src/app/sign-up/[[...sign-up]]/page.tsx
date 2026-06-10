@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SignUp } from "@clerk/nextjs";
 import BrandMark from "@/components/brand/BrandMark";
+import { DANNY_TAGLINE } from "@/lib/danny/presence";
 import { clerkAppearance } from "@/lib/auth/clerk-appearance";
 
 export default function SignUpPage() {
@@ -17,13 +18,11 @@ export default function SignUpPage() {
         </Link>
 
         <div className="mb-8">
-          <BrandMark size="sm" showTagline />
+          <BrandMark size="sm" />
           <h1 className="mt-6 font-[family-name:var(--font-rethink)] text-3xl font-extrabold tracking-tight">
             Create your account
           </h1>
-          <p className="mt-2 text-sm text-[var(--text-dim)]">
-            After sign-up you&apos;ll enter your workspace code from onboarding.
-          </p>
+          <p className="mt-2 text-sm text-[var(--text-dim)]">{DANNY_TAGLINE}</p>
         </div>
 
         <SignUp

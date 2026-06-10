@@ -38,6 +38,7 @@ export async function loadBrainIndex(): Promise<BrainChunk[]> {
 export async function searchBrain(
   query: string,
   limit = 5,
+  excerptChars = 320,
 ): Promise<BrainSearchResult[]> {
   const tokens = tokenize(query);
   if (!tokens.length) return [];
@@ -52,7 +53,7 @@ export async function searchBrain(
     id: chunk.id,
     title: chunk.title,
     source: chunk.source,
-    excerpt: chunk.text.slice(0, 320).trim(),
+    excerpt: chunk.text.slice(0, excerptChars).trim(),
     score,
   }));
 }

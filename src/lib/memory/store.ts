@@ -3,6 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { SessionMessage } from "../workspaces/types";
+import { TOKEN_BUDGET, truncate } from "../agents/token-budget";
 
 const DIR = path.join(process.cwd(), "data", "sessions");
 const MAX_MESSAGES = 80;
@@ -116,12 +117,12 @@ export async function appendSession(
 
 export function buildMemoryPreamble(history: SessionMessage[]): string {
   if (!history.length) return "";
-  const recent = history.slice(-6);
+  const recent = history.slice(-TOKEN_BUDGET.memoryMessages);
   const lines = recent.map(
     (m) =>
-      `${m.role === "user" ? "Client" : "AI Danny"}: ${m.content.slice(0, 280)}`,
+      `${m.role === "user" ? "Client" : "AI Danny"}: ${truncate(m.content, TOKEN_BUDGET.memoryCharsPerMessage)}`,
   );
-  return `## Recent session memory (this client)\n${lines.join("\n")}`;
+  return `## Recent memory\n${lines.join("\n")}`;
 }
 
 export function newMessage(

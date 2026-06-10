@@ -1,5 +1,7 @@
 import Link from "next/link";
 import BrandMark from "@/components/brand/BrandMark";
+import DannyAvatar from "@/components/danny/DannyAvatar";
+import { DANNY_TAGLINE } from "@/lib/danny/presence";
 
 export default function LandingPage() {
   return (
@@ -9,33 +11,45 @@ export default function LandingPage() {
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
         <header className="flex items-center justify-between">
-          <BrandMark size="md" showTagline />
+          <BrandMark size="md" />
         </header>
 
         <section className="flex flex-1 flex-col justify-center py-16">
-          <span className="pp-eyebrow pp-eyebrow-pill mb-6 w-fit">
-            Purely Personal Branding · Client system
-          </span>
-          <h1 className="max-w-3xl font-[family-name:var(--font-rethink)] text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] sm:text-6xl">
-            Danny&apos;s brain.
-            <br />
-            Your business.
-            <br />
-            <span className="text-[var(--pp-red)]">One move at a time.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--text-dim)]">
-            AI Danny is the premium operating layer Purely Personal Branding builds
-            for founders after the workshop. Methodology-grounded. Workspace-personalized.
-            Compounds every week you use it.
-          </p>
+          <div className="flex flex-col items-start gap-10 lg:flex-row lg:items-center lg:gap-16">
+            <div className="hidden shrink-0 lg:block">
+              <DannyAvatar size="xl" showOnline />
+            </div>
+            <div>
+              <span className="pp-eyebrow pp-eyebrow-pill mb-6 inline-flex w-fit">
+                AI Danny · Your workspace
+              </span>
+              <h1 className="max-w-3xl font-[family-name:var(--font-rethink)] text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] sm:text-6xl">
+                Danny&apos;s brain.
+                <br />
+                Your business.
+                <br />
+                <span className="text-[var(--pp-red)]">One move at a time.</span>
+              </h1>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--text-dim)]">
+                {DANNY_TAGLINE}
+              </p>
+              <p className="mt-3 max-w-xl text-sm text-[var(--text-faint)]">
+                Methodology-grounded. Workspace-personalized. Gets sharper every week you use it.
+              </p>
 
-          <div className="mt-10 flex flex-wrap gap-4">
-            <Link
-              href="/sign-in"
-              className="rounded-md bg-[var(--pp-red)] px-7 py-3 text-sm font-extrabold text-white transition hover:bg-[var(--pp-red-deep)]"
-            >
-              Enter your workspace
-            </Link>
+              <div className="mt-10 flex flex-wrap items-center gap-4">
+                <Link
+                  href="/sign-in"
+                  className="rounded-md bg-[var(--pp-red)] px-7 py-3 text-sm font-extrabold text-white transition hover:bg-[var(--pp-red-deep)]"
+                >
+                  Enter your workspace
+                </Link>
+                <div className="flex items-center gap-2 lg:hidden">
+                  <DannyAvatar size="sm" showOnline />
+                  <span className="text-xs text-[var(--text-faint)]">AI Danny online</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="mt-16 grid gap-4 sm:grid-cols-3">
@@ -56,7 +70,7 @@ export default function LandingPage() {
         </section>
 
         <footer className="font-[family-name:var(--font-jetbrains)] text-[11px] uppercase tracking-[0.12em] text-[var(--text-faint)]">
-          Purely Personal Branding · Private client workspaces only
+          AI Danny · Private client workspaces only
         </footer>
       </div>
     </main>

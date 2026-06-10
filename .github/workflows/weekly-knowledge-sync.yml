@@ -1,0 +1,39 @@
+name: Weekly knowledge sync
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install gh CLI
+        run: type gh || sudo apt-get update && sudo apt-get install -y gh
+
+      - name: Sync expert repos from GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/sync-expert-sources.mjs
+
+      - name: Re-index brain
+        run: npm run ingest
+
+      - name: Commit updated knowledge index
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/knowledge/external data/brain-index.json content/knowledge/external/_manifest.json
+          git diff --staged --quiet || git commit -m "chore: weekly expert knowledge sync and reindex"
+          git push

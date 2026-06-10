@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { ClientWorkspace } from "./types";
+import { TOKEN_BUDGET, truncate } from "../agents/token-budget";
 
 const DIR = path.join(process.cwd(), "data", "workspaces");
 
@@ -95,13 +96,10 @@ export async function findWorkspaceByCode(
 }
 
 export function workspaceContextBlock(ws: ClientWorkspace): string {
-  return `## Client workspace context
-- Founder: ${ws.founderName}
-- Business: ${ws.business}
-- Stage: ${ws.stage}
-- Their ICP: ${ws.icp}
-- Their positioning: ${ws.positioning}
-- Voice notes: ${ws.voiceNotes}
-
-Apply Danny's methodology to THIS founder's situation. Personalize every answer.`;
+  return `## Client context
+Founder: ${ws.founderName} | Business: ${truncate(ws.business, TOKEN_BUDGET.workspaceFieldMaxChars)} | Stage: ${ws.stage}
+ICP: ${truncate(ws.icp, TOKEN_BUDGET.workspaceFieldMaxChars)}
+Positioning: ${truncate(ws.positioning, TOKEN_BUDGET.workspaceFieldMaxChars)}
+Voice: ${truncate(ws.voiceNotes, TOKEN_BUDGET.workspaceFieldMaxChars)}
+Personalize to this founder.`;
 }

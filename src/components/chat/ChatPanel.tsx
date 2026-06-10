@@ -4,8 +4,11 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "sonner";
 import SkillPicker from "./SkillPicker";
+import DannyAvatar from "@/components/danny/DannyAvatar";
 import { getSkill, type SkillId } from "@/lib/agents/skills";
+import { randomQuip, DANNY_TAGLINE } from "@/lib/danny/presence";
 import { cn } from "@/lib/utils";
 
 function getMessageText(message: UIMessage): string {
@@ -21,6 +24,7 @@ export default function ChatPanel() {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const skill = getSkill(skillId);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const quip = useMemo(() => randomQuip(), []);
 
   const transport = useMemo(
     () =>
@@ -31,7 +35,18 @@ export default function ChatPanel() {
     [skillId],
   );
 
-  const { messages, sendMessage, setMessages, status } = useChat({ transport });
+  const { messages, sendMessage, setMessages, status } = useChat({
+    transport,
+    onError: (err) => {
+      toast.error(
+        err.message.includes("402")
+          ? "Out of Mentor credits — top up at platform.thementorprogram.xyz"
+          : err.message.includes("404")
+            ? "AI model unavailable — check API keys and AI_MODEL in .env.local, then restart dev."
+            : err.message || "Could not reach AI Danny. Try again.",
+      );
+    },
+  });
   const isLoading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
@@ -59,8 +74,9 @@ export default function ChatPanel() {
 
   if (!historyLoaded) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-[var(--text-dim)]">
-        Loading conversation…
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-[var(--text-dim)]">
+        <DannyAvatar size="md" pulse />
+        Waking up Danny&apos;s brain…
       </div>
     );
   }
@@ -68,13 +84,15 @@ export default function ChatPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="border-b border-[var(--dark-border)] px-6 py-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="pp-eyebrow mb-2 text-[10px]">Purely Personal Branding</p>
-            <h1 className="font-[family-name:var(--font-rethink)] text-2xl font-extrabold tracking-tight">
-              {skill.label}
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-dim)]">{skill.description}</p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <DannyAvatar size="lg" showOnline />
+            <div>
+              <h1 className="font-[family-name:var(--font-rethink)] text-2xl font-extrabold tracking-tight">
+                {skill.label}
+              </h1>
+              <p className="mt-1 text-sm text-[var(--text-dim)]">{skill.description}</p>
+            </div>
           </div>
           <SkillPicker active={skillId} onChange={setSkillId} />
         </div>
@@ -82,14 +100,20 @@ export default function ChatPanel() {
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
         {messages.length === 0 ? (
-          <div className="mx-auto max-w-2xl pt-8">
-            <p className="font-[family-name:var(--font-rethink)] text-3xl font-extrabold leading-tight tracking-[-0.02em]">
-              Ask anything about your brand, content, or next move.
-            </p>
-            <p className="mt-4 max-w-lg text-[var(--text-dim)]">
-              Grounded in Danny&apos;s methodology. Cited frameworks. One clear action per answer.
-            </p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <div className="mx-auto max-w-2xl pt-4">
+            <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left">
+              <DannyAvatar size="xl" showOnline className="mb-4 sm:mb-0 sm:mr-6" />
+              <div>
+                <p className="font-[family-name:var(--font-rethink)] text-3xl font-extrabold leading-tight tracking-[-0.02em]">
+                  Hey. I&apos;m AI Danny.
+                </p>
+                <p className="mt-3 text-[var(--text-dim)]">{DANNY_TAGLINE}</p>
+                <p className="mt-3 text-sm italic text-[var(--text-faint)]">
+                  &ldquo;{quip}&rdquo;
+                </p>
+              </div>
+            </div>
+            <div className="mt-10 grid gap-3 sm:grid-cols-2">
               {skill.suggestions.map((s) => (
                 <button
                   key={s}
@@ -111,25 +135,38 @@ export default function ChatPanel() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={cn(
-                    "rounded-md px-4 py-3",
-                    m.role === "user"
-                      ? "ml-8 border border-[var(--dark-border)] bg-[var(--dark-card)]"
-                      : "mr-4 border-l-4 border-l-[var(--pp-red)] bg-transparent pl-5",
+                    "flex gap-3",
+                    m.role === "user" ? "ml-8 flex-row-reverse" : "mr-2",
                   )}
                 >
-                  <p className="pp-eyebrow mb-2 text-[10px]">
-                    {m.role === "user" ? "You" : "AI Danny"}
-                  </p>
-                  <div className="prose-danny whitespace-pre-wrap text-[15px] leading-relaxed">
-                    {getMessageText(m)}
+                  {m.role === "assistant" && (
+                    <DannyAvatar size="sm" className="mt-1" />
+                  )}
+                  <div
+                    className={cn(
+                      "min-w-0 flex-1 rounded-md px-4 py-3",
+                      m.role === "user"
+                        ? "border border-[var(--dark-border)] bg-[var(--dark-card)]"
+                        : "border-l-4 border-l-[var(--pp-red)] bg-[var(--dark-card)]/40 pl-4",
+                    )}
+                  >
+                    <p className="pp-eyebrow mb-2 text-[10px]">
+                      {m.role === "user" ? "You" : "AI Danny"}
+                    </p>
+                    <div className="prose-danny whitespace-pre-wrap text-[15px] leading-relaxed">
+                      {getMessageText(m)}
+                    </div>
                   </div>
                 </motion.div>
               ))}
             </AnimatePresence>
             {isLoading && (
-              <div className="mr-4 flex items-center gap-2 text-sm text-[var(--text-dim)]">
-                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--pp-red)]" />
-                Thinking…
+              <div className="mr-2 flex items-start gap-3">
+                <DannyAvatar size="sm" pulse />
+                <div className="text-sm text-[var(--text-dim)]">
+                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--pp-red)]" />{" "}
+                  Thinking… probably funnier than this loading message.
+                </div>
               </div>
             )}
           </div>
@@ -144,6 +181,7 @@ export default function ChatPanel() {
         className="border-t border-[var(--dark-border)] bg-[var(--dark-elevated)] px-6 py-4"
       >
         <div className="mx-auto flex max-w-2xl items-end gap-3">
+          <DannyAvatar size="xs" className="mb-3 hidden sm:block" showOnline />
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}

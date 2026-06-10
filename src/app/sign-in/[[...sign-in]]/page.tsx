@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SignIn } from "@clerk/nextjs";
 import BrandMark from "@/components/brand/BrandMark";
+import { DANNY_TAGLINE } from "@/lib/danny/presence";
 import { clerkAppearance } from "@/lib/auth/clerk-appearance";
 
 export default function SignInPage() {
@@ -17,13 +18,11 @@ export default function SignInPage() {
         </Link>
 
         <div className="mb-8">
-          <BrandMark size="sm" showTagline />
+          <BrandMark size="sm" />
           <h1 className="mt-6 font-[family-name:var(--font-rethink)] text-3xl font-extrabold tracking-tight">
-            Client sign in
+            Sign in
           </h1>
-          <p className="mt-2 text-sm text-[var(--text-dim)]">
-            Purely Personal Branding workspace access for founders.
-          </p>
+          <p className="mt-2 text-sm text-[var(--text-dim)]">{DANNY_TAGLINE}</p>
         </div>
 
         <SignIn

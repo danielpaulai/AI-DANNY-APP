@@ -41,7 +41,7 @@ export default function AppPage() {
   return (
     <main className="relative flex min-h-screen flex-col lg:flex-row">
       <div className="flex items-center justify-between border-b border-[var(--dark-border)] bg-[var(--dark-elevated)] px-4 py-3 lg:hidden">
-        <BrandMark size="sm" showTagline />
+        <BrandMark size="sm" />
         <UserButton
           appearance={{
             variables: {

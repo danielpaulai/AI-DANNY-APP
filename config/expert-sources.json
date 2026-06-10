@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "description": "GitHub repos synced into content/knowledge/external/ for AI Danny brain. Run: npm run sync-experts",
+  "repos": [
+    {
+      "owner": "danielpaulai",
+      "repo": "ai-marketing-agent-challenge",
+      "branch": "main",
+      "paths": ["AI Marketing Agent Challenge"],
+      "label": "AI Marketing Agent Challenge KB"
+    },
+    {
+      "owner": "danielpaulai",
+      "repo": "Purely-Personal",
+      "branch": "main",
+      "paths": ["."],
+      "label": "Purely Personal methodology"
+    },
+    {
+      "owner": "danielpaulai",
+      "repo": "Build-a-brand-that-brings-high-ticket",
+      "branch": "main",
+      "paths": ["."],
+      "label": "High-ticket brand curriculum"
+    },
+    {
+      "owner": "danielpaulai",
+      "repo": "DannyOS",
+      "branch": "main",
+      "paths": ["."],
+      "label": "DannyOS operating system"
+    }
+  ]
+}

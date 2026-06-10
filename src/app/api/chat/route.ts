@@ -1,37 +1,26 @@
-import {
-  convertToModelMessages,
-  streamText,
-  tool,
-  stepCountIs,
-  type UIMessage,
-} from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { z } from "zod";
-import { loadSoulBundle } from "@/lib/soul/loader";
-import { searchBrain } from "@/lib/brain/search";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { TOKEN_BUDGET } from "@/lib/agents/token-budget";
+import { getChatModel, kimiInstantModeOptions } from "@/lib/agents/model";
 import { getSkill, type SkillId } from "@/lib/agents/skills";
+import { formatBrainHits } from "@/lib/brain/format-hits";
+import { searchBrain } from "@/lib/brain/search";
 import { getWorkspaceIdFromSession } from "@/lib/auth/session";
-import {
-  getWorkspace,
-  workspaceContextBlock,
-} from "@/lib/workspaces/store";
 import {
   appendSession,
   buildMemoryPreamble,
   loadSession,
   newMessage,
 } from "@/lib/memory/store";
+import { loadSoulBundle } from "@/lib/soul/loader";
+import {
+  getWorkspace,
+  workspaceContextBlock,
+} from "@/lib/workspaces/store";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-function getModel() {
-  const anthropic = createAnthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-  const modelId = process.env.AI_MODEL ?? "claude-sonnet-4-6";
-  return anthropic(modelId);
-}
+const PRIVACY_COMPACT = `Privacy: never other clients' names, exact revenue, or internal pricing — use archetypes and bands.`;
 
 function messageText(parts: UIMessage["parts"]): string {
   return parts
@@ -40,28 +29,50 @@ function messageText(parts: UIMessage["parts"]): string {
     .join("");
 }
 
+function trimUiMessages(messages: UIMessage[]): UIMessage[] {
+  return messages.slice(-TOKEN_BUDGET.maxChatMessages);
+}
+
 export async function POST(req: Request) {
-  const workspaceId = await getWorkspaceIdFromSession();
-  if (!workspaceId) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  try {
+    const workspaceId = await getWorkspaceIdFromSession();
+    if (!workspaceId) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
-  const workspace = await getWorkspace(workspaceId);
-  if (!workspace) {
-    return new Response("Workspace not found", { status: 404 });
-  }
+    const workspace = await getWorkspace(workspaceId);
+    if (!workspace) {
+      return new Response("Workspace not found", { status: 404 });
+    }
 
-  const { messages, skillId } = (await req.json()) as {
-    messages: UIMessage[];
-    skillId?: SkillId;
-  };
+    const { messages, skillId } = (await req.json()) as {
+      messages: UIMessage[];
+      skillId?: SkillId;
+    };
 
-  const skill = getSkill(skillId);
-  const soul = await loadSoulBundle();
-  const history = await loadSession(workspaceId);
-  const memory = buildMemoryPreamble(history);
+    const skill = getSkill(skillId);
+    const soul = await loadSoulBundle({ compact: true });
+    const history = await loadSession(workspaceId);
+    const memory = buildMemoryPreamble(history);
 
-  const system = `${soul}
+    const uiMessages = trimUiMessages(messages ?? []);
+    const lastUser = [...uiMessages].reverse().find((m) => m.role === "user");
+    const lastUserText = lastUser ? messageText(lastUser.parts) : "";
+
+    const brainHits =
+      lastUserText.length > 0
+        ? formatBrainHits(
+            await searchBrain(
+              lastUserText,
+              TOKEN_BUDGET.brainPrefetchLimit,
+              TOKEN_BUDGET.brainExcerptChars,
+            ),
+          )
+        : "";
+
+    const system = `${soul}
+
+${PRIVACY_COMPACT}
 
 ${skill.prompt}
 
@@ -69,53 +80,32 @@ ${workspaceContextBlock(workspace)}
 
 ${memory}
 
-You have a tool \`queryBrain\` that searches Danny's curated methodology knowledge base.
-Use it when answering needs grounding in frameworks, positioning, ICP, or diagnostics.
-Always cite framework or source titles inline.
-If nothing relevant is found, say what you'd need and still give your best operator take.`;
+${brainHits}
 
-  const uiMessages = messages ?? [];
-  const lastUser = [...uiMessages].reverse().find((m) => m.role === "user");
-  const lastUserText = lastUser ? messageText(lastUser.parts) : "";
+Reply in Danny's voice: short paragraphs, one move to end. Stay under ~350 words unless they ask for depth.
+When relevant, synthesize expert frameworks (Hormozi, Brunson, Robbins, etc.) — name them, apply to this founder, never book summaries.`;
 
-  const result = streamText({
-    model: getModel(),
-    system,
-    messages: await convertToModelMessages(uiMessages),
-    tools: {
-      queryBrain: tool({
-        description:
-          "Search Danny's methodology knowledge base for frameworks, positioning, ICP, and diagnostics.",
-        inputSchema: z.object({
-          query: z.string().describe("What to search for in the knowledge base."),
-        }),
-        execute: async ({ query }) => {
-          const results = await searchBrain(query, 5);
-          return { count: results.length, results };
-        },
-      }),
-    },
-    stopWhen: stepCountIs(3),
-    onFinish: async ({ text, steps }) => {
-      const citations = steps
-        .flatMap((step) => step.toolResults ?? [])
-        .flatMap((tr) => {
-          const output = tr.output as { results?: { title: string }[] };
-          return output.results?.map((r) => r.title) ?? [];
-        })
-        .filter(Boolean);
+    const result = streamText({
+      model: getChatModel(),
+      providerOptions: kimiInstantModeOptions(),
+      system,
+      messages: await convertToModelMessages(uiMessages),
+      maxOutputTokens: TOKEN_BUDGET.maxOutputTokens,
+      onFinish: async ({ text }) => {
+        if (lastUserText) {
+          await appendSession(workspaceId, [
+            newMessage("user", lastUserText, { skillId: skill.id }),
+            newMessage("assistant", text, { skillId: skill.id }),
+          ]);
+        }
+      },
+    });
 
-      if (lastUserText) {
-        await appendSession(workspaceId, [
-          newMessage("user", lastUserText, { skillId: skill.id }),
-          newMessage("assistant", text, {
-            skillId: skill.id,
-            citations: [...new Set(citations)],
-          }),
-        ]);
-      }
-    },
-  });
-
-  return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse();
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Chat failed unexpectedly";
+    console.error("[chat]", err);
+    return new Response(message, { status: 500 });
+  }
 }

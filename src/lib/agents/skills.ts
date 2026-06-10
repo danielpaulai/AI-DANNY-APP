@@ -13,8 +13,7 @@ export const SKILLS: Record<SkillId, Skill> = {
     id: "general",
     label: "AI Danny",
     description: "Strategy, AI systems, personal brand, pipeline",
-    prompt: `Default mode. Answer as AI Danny with full methodology access.
-Give one clear next action. Be direct, occasionally dry-humoured, never sycophantic.`,
+    prompt: `Default mode. Answer as AI Danny. One clear next action. Direct, dry-humoured.`,
     suggestions: [
       "What's the one move I should make this week to turn LinkedIn into a client channel?",
       "I'm posting consistently but nobody books calls. Diagnose it.",

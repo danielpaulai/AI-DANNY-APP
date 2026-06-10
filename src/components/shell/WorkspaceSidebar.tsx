@@ -3,6 +3,7 @@
 import { UserButton } from "@clerk/nextjs";
 import type { ClientWorkspace } from "@/lib/workspaces/types";
 import BrandMark from "@/components/brand/BrandMark";
+import DannyPresenceCard from "@/components/danny/DannyPresenceCard";
 
 type Props = {
   workspace: ClientWorkspace;
@@ -13,10 +14,7 @@ export default function WorkspaceSidebar({ workspace }: Props) {
     <aside className="hidden w-72 shrink-0 flex-col border-r border-[var(--dark-border)] bg-[var(--dark-elevated)] p-6 lg:flex">
       <div className="mb-8 flex items-start justify-between gap-3">
         <div>
-          <BrandMark size="sm" showTagline />
-          <p className="mt-4 font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-[0.18em] text-[var(--pp-red)]">
-            AI Danny
-          </p>
+          <BrandMark size="sm" />
         </div>
         <UserButton
           appearance={{
@@ -26,6 +24,10 @@ export default function WorkspaceSidebar({ workspace }: Props) {
             },
           }}
         />
+      </div>
+
+      <div className="mb-6">
+        <DannyPresenceCard />
       </div>
 
       <div className="space-y-5 text-sm">
@@ -53,8 +55,7 @@ export default function WorkspaceSidebar({ workspace }: Props) {
 
       <div className="mt-auto rounded-md border border-[var(--dark-border)] border-l-4 border-l-[var(--pp-red)] bg-[var(--dark-card)] p-4">
         <p className="text-xs leading-relaxed text-[var(--text-dim)]">
-          This workspace compounds. Every session sharpens context. Purely Personal
-          Branding methodology updates flow in automatically.
+          This workspace compounds. Every session sharpens context and memory.
         </p>
       </div>
     </aside>

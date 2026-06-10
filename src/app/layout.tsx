@@ -26,9 +26,9 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Danny | Purely Personal Branding",
+  title: "AI Danny",
   description:
-    "Premium expert system for Purely Personal Branding clients. Danny's methodology, applied to your business.",
+    "Serious about your business. Dry wit about everything else. Danny's methodology, applied to your workspace.",
 };
 
 export const viewport: Viewport = {
