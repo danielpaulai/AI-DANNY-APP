@@ -1,6 +1,10 @@
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { TOKEN_BUDGET } from "@/lib/agents/token-budget";
 import { getChatModel, kimiInstantModeOptions } from "@/lib/agents/model";
+import {
+  sanitizeVoiceOutput,
+  VOICE_GUARDRAILS_COMPACT,
+} from "@/lib/agents/voice-guardrails";
 import { getSkill, type SkillId } from "@/lib/agents/skills";
 import { formatBrainHits } from "@/lib/brain/format-hits";
 import { searchBrain } from "@/lib/brain/search";
@@ -70,7 +74,9 @@ export async function POST(req: Request) {
           )
         : "";
 
-    const system = `${soul}
+    const system = `${VOICE_GUARDRAILS_COMPACT}
+
+${soul}
 
 ${PRIVACY_COMPACT}
 
@@ -92,10 +98,11 @@ When relevant, synthesize expert frameworks (Hormozi, Brunson, Robbins, etc.) â€
       messages: await convertToModelMessages(uiMessages),
       maxOutputTokens: TOKEN_BUDGET.maxOutputTokens,
       onFinish: async ({ text }) => {
+        const cleaned = sanitizeVoiceOutput(text);
         if (lastUserText) {
           await appendSession(workspaceId, [
             newMessage("user", lastUserText, { skillId: skill.id }),
-            newMessage("assistant", text, { skillId: skill.id }),
+            newMessage("assistant", cleaned, { skillId: skill.id }),
           ]);
         }
       },

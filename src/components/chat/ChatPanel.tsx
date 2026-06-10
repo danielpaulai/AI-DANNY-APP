@@ -9,13 +9,15 @@ import SkillPicker from "./SkillPicker";
 import DannyAvatar from "@/components/danny/DannyAvatar";
 import { getSkill, type SkillId } from "@/lib/agents/skills";
 import { randomQuip, DANNY_TAGLINE } from "@/lib/danny/presence";
+import { sanitizeVoiceOutput } from "@/lib/agents/voice-guardrails";
 import { cn } from "@/lib/utils";
 
 function getMessageText(message: UIMessage): string {
-  return message.parts
+  const raw = message.parts
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
     .map((p) => p.text)
     .join("");
+  return message.role === "assistant" ? sanitizeVoiceOutput(raw) : raw;
 }
 
 export default function ChatPanel() {

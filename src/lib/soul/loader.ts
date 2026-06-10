@@ -11,13 +11,20 @@ function stripFrontmatter(text: string): string {
   return text;
 }
 
-/** Full bundle for admin/debug. Chat uses compact mode. */
+/** Chat system bundle: soul + hard voice rules (STYLE + guardrails always). */
 export async function loadSoulBundle(options?: {
   compact?: boolean;
 }): Promise<string> {
+  const read = async (file: string) =>
+    stripFrontmatter(await fs.readFile(path.join(SOUL_DIR, file), "utf8"));
+
   if (options?.compact) {
-    const soul = await fs.readFile(path.join(SOUL_DIR, "SOUL.md"), "utf8");
-    return stripFrontmatter(soul);
+    const [soul, style, guardrails] = await Promise.all([
+      read("SOUL.md"),
+      read("STYLE.md"),
+      read("VOICE-GUARDRAILS.md"),
+    ]);
+    return `${guardrails}\n\n${style}\n\n${soul}`;
   }
 
   const files = ["SOUL.md", "STYLE.md", "PRIVACY.md"];
