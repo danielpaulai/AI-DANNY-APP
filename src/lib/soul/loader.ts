@@ -36,3 +36,15 @@ export async function loadSoulBundle(options?: {
   );
   return parts.join("\n\n");
 }
+
+/** Lighter Cloud mode — supportive persona + voice guardrails only. */
+export async function loadCloudBundle(): Promise<string> {
+  const read = async (file: string) =>
+    stripFrontmatter(await fs.readFile(path.join(SOUL_DIR, file), "utf8"));
+  const [cloud, guardrails, style] = await Promise.all([
+    read("CLOUD.md"),
+    read("VOICE-GUARDRAILS.md"),
+    read("STYLE.md"),
+  ]);
+  return `${guardrails}\n\n${style}\n\n${cloud}`;
+}

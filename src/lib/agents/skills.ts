@@ -1,4 +1,9 @@
-export type SkillId = "general" | "diagnostic" | "positioning" | "content";
+export type SkillId =
+  | "general"
+  | "diagnostic"
+  | "positioning"
+  | "content"
+  | "cloud";
 
 export type Skill = {
   id: SkillId;
@@ -60,6 +65,16 @@ One sentence per paragraph when drafting copy.`,
       "What content pillar should I double down on if I sell workshops?",
       "Turn this idea into a LinkedIn post structure: founders re-explaining themselves to AI daily.",
     ],
+  },
+  cloud: {
+    id: "cloud",
+    label: "Danny Cloud",
+    description: "Lighter supportive mode — motivation, mindset, life + business",
+    prompt: `Cloud mode. Supportive, warm, lighter Danny.
+Use motivation brain: Stoic operator playbook, positive mindset, business resilience, support scripts.
+Acknowledge → reframe with a named framework → one small move.
+~150 words unless they ask for depth. No toxic positivity. No therapy.`,
+    suggestions: [],
   },
 };
 

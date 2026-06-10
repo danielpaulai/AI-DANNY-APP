@@ -11,7 +11,9 @@ type Props = {
 export default function SkillPicker({ active, onChange }: Props) {
   return (
     <div className="flex flex-wrap gap-2">
-      {Object.values(SKILLS).map((skill) => (
+      {Object.values(SKILLS)
+        .filter((skill) => skill.id !== "cloud")
+        .map((skill) => (
         <button
           key={skill.id}
           type="button"

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "description": "Public motivation/philosophy repos → content/knowledge/external/motivation/",
+  "repos": [
+    {
+      "owner": "dannysummary",
+      "repo": "stoic-quotes",
+      "branch": "main",
+      "paths": ["."],
+      "label": "Stoic quotes (optional — skip if unavailable)"
+    }
+  ],
+  "note": "Primary motivation content lives in content/brain/motivation/ (Danny synthesis). Run npm run sync-experts for team repos."
+}

@@ -8,7 +8,7 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 
-const hiddenPrefixes = ["/sign-in", "/sign-up", "/app"];
+const hiddenPrefixes = ["/sign-in", "/sign-up", "/app", "/cloud"];
 
 export default function AuthNav() {
   const pathname = usePathname();

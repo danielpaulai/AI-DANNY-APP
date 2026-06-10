@@ -15,7 +15,7 @@ import {
   loadSession,
   newMessage,
 } from "@/lib/memory/store";
-import { loadSoulBundle } from "@/lib/soul/loader";
+import { loadSoulBundle, loadCloudBundle } from "@/lib/soul/loader";
 import {
   getWorkspace,
   workspaceContextBlock,
@@ -55,24 +55,36 @@ export async function POST(req: Request) {
     };
 
     const skill = getSkill(skillId);
-    const soul = await loadSoulBundle({ compact: true });
-    const history = await loadSession(workspaceId);
+    const isCloud = skill.id === "cloud";
+    const soul = isCloud ? await loadCloudBundle() : await loadSoulBundle({ compact: true });
+    const history = await loadSession(workspaceId, {
+      skillId: isCloud ? "cloud" : undefined,
+    });
     const memory = buildMemoryPreamble(history);
 
     const uiMessages = trimUiMessages(messages ?? []);
     const lastUser = [...uiMessages].reverse().find((m) => m.role === "user");
     const lastUserText = lastUser ? messageText(lastUser.parts) : "";
 
+    const brainQuery = isCloud
+      ? `${lastUserText} motivation mindset support resilience stoic`
+      : lastUserText;
+
     const brainHits =
-      lastUserText.length > 0
+      brainQuery.length > 0
         ? formatBrainHits(
             await searchBrain(
-              lastUserText,
+              brainQuery,
               TOKEN_BUDGET.brainPrefetchLimit,
               TOKEN_BUDGET.brainExcerptChars,
             ),
           )
         : "";
+
+    const replyRules = isCloud
+      ? `Reply warm and brief (~150 words). Acknowledge → framework → one small move. Danny voice, lighter.`
+      : `Reply in Danny's voice: short paragraphs, one move to end. Stay under ~350 words unless they ask for depth.
+When relevant, synthesize expert frameworks (Hormozi, Brunson, Robbins, etc.) — name them, apply to this founder, never book summaries.`;
 
     const system = `${VOICE_GUARDRAILS_COMPACT}
 
@@ -88,15 +100,14 @@ ${memory}
 
 ${brainHits}
 
-Reply in Danny's voice: short paragraphs, one move to end. Stay under ~350 words unless they ask for depth.
-When relevant, synthesize expert frameworks (Hormozi, Brunson, Robbins, etc.) — name them, apply to this founder, never book summaries.`;
+${replyRules}`;
 
     const result = streamText({
       model: getChatModel(),
       providerOptions: kimiInstantModeOptions(),
       system,
       messages: await convertToModelMessages(uiMessages),
-      maxOutputTokens: TOKEN_BUDGET.maxOutputTokens,
+      maxOutputTokens: isCloud ? 512 : TOKEN_BUDGET.maxOutputTokens,
       onFinish: async ({ text }) => {
         const cleaned = sanitizeVoiceOutput(text);
         if (lastUserText) {

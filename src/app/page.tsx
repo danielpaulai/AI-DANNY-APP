@@ -44,6 +44,12 @@ export default function LandingPage() {
                 >
                   Enter your workspace
                 </Link>
+                <Link
+                  href="/cloud"
+                  className="rounded-md border border-[var(--dark-border)] bg-[var(--dark-card)] px-7 py-3 text-sm font-bold text-[var(--text)] transition hover:border-indigo-400/60"
+                >
+                  ☁️ Try Danny Cloud
+                </Link>
                 <div className="flex items-center gap-2 lg:hidden">
                   <DannyAvatar size="sm" showOnline />
                   <span className="text-xs text-[var(--text-faint)]">AI Danny online</span>

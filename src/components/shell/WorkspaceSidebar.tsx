@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import type { ClientWorkspace } from "@/lib/workspaces/types";
 import BrandMark from "@/components/brand/BrandMark";
@@ -53,10 +54,23 @@ export default function WorkspaceSidebar({ workspace }: Props) {
         </div>
       </div>
 
-      <div className="mt-auto rounded-md border border-[var(--dark-border)] border-l-4 border-l-[var(--pp-red)] bg-[var(--dark-card)] p-4">
-        <p className="text-xs leading-relaxed text-[var(--text-dim)]">
-          This workspace compounds. Every session sharpens context and memory.
-        </p>
+      <div className="mt-auto space-y-3">
+        <Link
+          href="/cloud"
+          className="block rounded-md border border-[var(--dark-border)] bg-[var(--dark-card)] p-4 transition hover:border-indigo-400/50"
+        >
+          <p className="font-[family-name:var(--font-rethink)] text-sm font-bold">
+            ☁️ Danny Cloud
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-dim)]">
+            Lighter mode. Motivation, mindset, ask anything.
+          </p>
+        </Link>
+        <div className="rounded-md border border-[var(--dark-border)] border-l-4 border-l-[var(--pp-red)] bg-[var(--dark-card)] p-4">
+          <p className="text-xs leading-relaxed text-[var(--text-dim)]">
+            This workspace compounds. Every session sharpens context and memory.
+          </p>
+        </div>
       </div>
     </aside>
   );

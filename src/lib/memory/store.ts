@@ -49,18 +49,29 @@ async function loadSessionFromFile(
   }
 }
 
-export async function loadSession(workspaceId: string): Promise<SessionMessage[]> {
-  if (!isSupabaseConfigured()) return loadSessionFromFile(workspaceId);
+export async function loadSession(
+  workspaceId: string,
+  options?: { skillId?: string },
+): Promise<SessionMessage[]> {
+  let messages: SessionMessage[];
+  if (!isSupabaseConfigured()) {
+    messages = await loadSessionFromFile(workspaceId);
+  } else {
+    const { data, error } = await getSupabase()
+      .from("messages")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: true })
+      .limit(MAX_MESSAGES);
 
-  const { data, error } = await getSupabase()
-    .from("messages")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("created_at", { ascending: true })
-    .limit(MAX_MESSAGES);
+    if (error) throw error;
+    messages = (data as MessageRow[]).map(rowToMessage);
+  }
 
-  if (error) throw error;
-  return (data as MessageRow[]).map(rowToMessage);
+  if (options?.skillId === "cloud") {
+    return messages.filter((m) => m.skillId === "cloud");
+  }
+  return messages.filter((m) => m.skillId !== "cloud");
 }
 
 async function appendSessionToFile(
