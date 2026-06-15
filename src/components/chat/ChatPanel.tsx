@@ -7,7 +7,14 @@ import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import SkillPicker from "./SkillPicker";
 import DannyAvatar from "@/components/danny/DannyAvatar";
-import { getSkill, type SkillId } from "@/lib/agents/skills";
+import CitationChips from "@/components/chat/CitationChips";
+import MessageFeedback from "@/components/chat/MessageFeedback";
+import PageLoader from "@/components/shell/PageLoader";
+import {
+  getSkill,
+  TOP_QUESTION_CHIPS,
+  type SkillId,
+} from "@/lib/agents/skills";
 import { randomQuip, DANNY_TAGLINE } from "@/lib/danny/presence";
 import { sanitizeVoiceOutput } from "@/lib/agents/voice-guardrails";
 import { cn } from "@/lib/utils";
@@ -20,6 +27,11 @@ function getMessageText(message: UIMessage): string {
   return message.role === "assistant" ? sanitizeVoiceOutput(raw) : raw;
 }
 
+function getCitations(message: UIMessage): string[] {
+  const meta = message.metadata as { citations?: string[] } | undefined;
+  return meta?.citations ?? [];
+}
+
 export default function ChatPanel() {
   const [skillId, setSkillId] = useState<SkillId>("general");
   const [input, setInput] = useState("");
@@ -27,6 +39,7 @@ export default function ChatPanel() {
   const skill = getSkill(skillId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const quip = useMemo(() => randomQuip(), []);
+  const prevStatus = useRef<string>("ready");
 
   const transport = useMemo(
     () =>
@@ -41,11 +54,13 @@ export default function ChatPanel() {
     transport,
     onError: (err) => {
       toast.error(
-        err.message.includes("402")
-          ? "Out of Mentor credits — top up at platform.thementorprogram.xyz"
-          : err.message.includes("404")
-            ? "AI model unavailable — check API keys and AI_MODEL in .env.local, then restart dev."
-            : err.message || "Could not reach AI Danny. Try again.",
+        err.message.includes("429")
+          ? err.message
+          : err.message.includes("402")
+            ? "Out of Mentor credits — top up at platform.thementorprogram.xyz"
+            : err.message.includes("404")
+              ? "AI model unavailable — check API keys and AI_MODEL in .env.local, then restart dev."
+              : err.message || "Could not reach AI Danny. Try again.",
       );
     },
   });
@@ -61,6 +76,17 @@ export default function ChatPanel() {
   }, [setMessages]);
 
   useEffect(() => {
+    if (prevStatus.current === "streaming" && status === "ready") {
+      fetch("/api/messages")
+        .then((r) => (r.ok ? r.json() : { messages: [] }))
+        .then((data) => {
+          if (data.messages?.length) setMessages(data.messages);
+        });
+    }
+    prevStatus.current = status;
+  }, [status, setMessages]);
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
@@ -74,13 +100,13 @@ export default function ChatPanel() {
     await sendMessage({ text: trimmed });
   }
 
+  function handleChipClick(chipSkillId: SkillId, text: string) {
+    setSkillId(chipSkillId);
+    setInput(text);
+  }
+
   if (!historyLoaded) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-[var(--text-dim)]">
-        <DannyAvatar size="md" pulse />
-        Waking up Danny&apos;s brain…
-      </div>
-    );
+    return <PageLoader label="Waking up Danny's brain…" />;
   }
 
   return (
@@ -93,7 +119,9 @@ export default function ChatPanel() {
               <h1 className="font-[family-name:var(--font-rethink)] text-2xl font-extrabold tracking-tight">
                 {skill.label}
               </h1>
-              <p className="mt-1 text-sm text-[var(--text-dim)]">{skill.description}</p>
+              <p className="mt-1 text-sm text-[var(--text-dim)]">
+                {skill.description}
+              </p>
             </div>
           </div>
           <SkillPicker active={skillId} onChange={setSkillId} />
@@ -115,7 +143,25 @@ export default function ChatPanel() {
                 </p>
               </div>
             </div>
-            <div className="mt-10 grid gap-3 sm:grid-cols-2">
+
+            <p className="pp-eyebrow mt-10 text-[10px]">Top questions</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {TOP_QUESTION_CHIPS.map((chip) => (
+                <button
+                  key={chip.text}
+                  type="button"
+                  onClick={() => handleChipClick(chip.skillId, chip.text)}
+                  className="rounded-md border border-[var(--dark-border)] bg-[var(--dark-card)] p-3 text-left text-xs leading-relaxed text-[var(--text-dim)] transition hover:border-[var(--pp-red)] hover:text-[var(--text)]"
+                >
+                  {chip.text}
+                </button>
+              ))}
+            </div>
+
+            <p className="pp-eyebrow mt-8 text-[10px]">
+              {skill.label} suggestions
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {skill.suggestions.map((s) => (
                 <button
                   key={s}
@@ -158,6 +204,12 @@ export default function ChatPanel() {
                     <div className="prose-danny whitespace-pre-wrap text-[15px] leading-relaxed">
                       {getMessageText(m)}
                     </div>
+                    {m.role === "assistant" && (
+                      <>
+                        <CitationChips citations={getCitations(m)} />
+                        <MessageFeedback messageId={m.id} />
+                      </>
+                    )}
                   </div>
                 </motion.div>
               ))}

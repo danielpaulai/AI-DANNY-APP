@@ -11,7 +11,7 @@ function stripFrontmatter(text: string): string {
   return text;
 }
 
-/** Chat system bundle: soul + hard voice rules (STYLE + guardrails always). */
+/** Chat system bundle: soul + style. Skips full guardrails when compact constant is injected separately. */
 export async function loadSoulBundle(options?: {
   compact?: boolean;
 }): Promise<string> {
@@ -19,12 +19,8 @@ export async function loadSoulBundle(options?: {
     stripFrontmatter(await fs.readFile(path.join(SOUL_DIR, file), "utf8"));
 
   if (options?.compact) {
-    const [soul, style, guardrails] = await Promise.all([
-      read("SOUL.md"),
-      read("STYLE.md"),
-      read("VOICE-GUARDRAILS.md"),
-    ]);
-    return `${guardrails}\n\n${style}\n\n${soul}`;
+    const [soul, style] = await Promise.all([read("SOUL.md"), read("STYLE.md")]);
+    return `${style}\n\n${soul}`;
   }
 
   const files = ["SOUL.md", "STYLE.md", "PRIVACY.md"];
@@ -37,14 +33,9 @@ export async function loadSoulBundle(options?: {
   return parts.join("\n\n");
 }
 
-/** Lighter Cloud mode — supportive persona + voice guardrails only. */
+/** Lighter Cloud mode — CLOUD.md only; guardrails injected separately in route. */
 export async function loadCloudBundle(): Promise<string> {
   const read = async (file: string) =>
     stripFrontmatter(await fs.readFile(path.join(SOUL_DIR, file), "utf8"));
-  const [cloud, guardrails, style] = await Promise.all([
-    read("CLOUD.md"),
-    read("VOICE-GUARDRAILS.md"),
-    read("STYLE.md"),
-  ]);
-  return `${guardrails}\n\n${style}\n\n${cloud}`;
+  return read("CLOUD.md");
 }

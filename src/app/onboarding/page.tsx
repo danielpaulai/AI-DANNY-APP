@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import BrandMark from "@/components/brand/BrandMark";
+import PageLoader from "@/components/shell/PageLoader";
 import { DANNY_TAGLINE } from "@/lib/danny/presence";
 
 function OnboardingForm() {
@@ -23,9 +24,7 @@ function OnboardingForm() {
   }, [router]);
 
   if (checking) {
-    return (
-      <div className="text-sm text-[var(--text-dim)]">Loading…</div>
-    );
+    return <PageLoader label="Checking workspace…" />;
   }
 
   async function onSubmit(e: React.FormEvent) {

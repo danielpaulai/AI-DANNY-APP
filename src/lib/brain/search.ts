@@ -15,7 +15,44 @@ function tokenize(q: string): string[] {
     .filter((t) => t.length > 2);
 }
 
-function scoreChunk(chunk: BrainChunk, tokens: string[]): number {
+function extractExcerpt(
+  text: string,
+  tokens: string[],
+  maxChars: number,
+): string {
+  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim());
+  let best = paragraphs[0] ?? text;
+
+  for (const para of paragraphs) {
+    const lower = para.toLowerCase();
+    if (tokens.some((t) => lower.includes(t))) {
+      best = para;
+      break;
+    }
+  }
+
+  const normalized = best.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxChars) return normalized;
+
+  const lower = normalized.toLowerCase();
+  let anchor = 0;
+  for (const t of tokens) {
+    const idx = lower.indexOf(t);
+    if (idx >= 0) {
+      anchor = Math.max(0, idx - Math.floor(maxChars / 3));
+      break;
+    }
+  }
+
+  const slice = normalized.slice(anchor, anchor + maxChars).trim();
+  return anchor > 0 ? `…${slice}` : `${slice}…`;
+}
+
+function scoreChunk(
+  chunk: BrainChunk,
+  tokens: string[],
+  preferBrainSources: boolean,
+): number {
   const hay = `${chunk.title} ${chunk.text} ${chunk.tags.join(" ")}`.toLowerCase();
   let score = 0;
   for (const t of tokens) {
@@ -23,6 +60,9 @@ function scoreChunk(chunk: BrainChunk, tokens: string[]): number {
     if (chunk.tags.some((tag) => tag.includes(t))) score += 3;
     const matches = hay.split(t).length - 1;
     score += Math.min(matches, 5);
+  }
+  if (preferBrainSources && chunk.source.includes("content/brain/")) {
+    score += 2;
   }
   return score;
 }
@@ -35,16 +75,25 @@ export async function loadBrainIndex(): Promise<BrainChunk[]> {
   return chunks;
 }
 
+export type SearchBrainOptions = {
+  preferBrainSources?: boolean;
+};
+
 export async function searchBrain(
   query: string,
   limit = 5,
   excerptChars = 320,
+  options?: SearchBrainOptions,
 ): Promise<BrainSearchResult[]> {
   const tokens = tokenize(query);
   if (!tokens.length) return [];
   const chunks = await loadBrainIndex();
+  const preferBrain = options?.preferBrainSources ?? false;
   const ranked = chunks
-    .map((chunk) => ({ chunk, score: scoreChunk(chunk, tokens) }))
+    .map((chunk) => ({
+      chunk,
+      score: scoreChunk(chunk, tokens, preferBrain),
+    }))
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -53,7 +102,7 @@ export async function searchBrain(
     id: chunk.id,
     title: chunk.title,
     source: chunk.source,
-    excerpt: chunk.text.slice(0, excerptChars).trim(),
+    excerpt: extractExcerpt(chunk.text, tokens, excerptChars),
     score,
   }));
 }

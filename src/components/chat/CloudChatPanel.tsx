@@ -8,11 +8,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import DannyAvatar from "@/components/danny/DannyAvatar";
+import CitationChips from "@/components/chat/CitationChips";
+import MessageFeedback from "@/components/chat/MessageFeedback";
+import PageLoader from "@/components/shell/PageLoader";
 import { sanitizeVoiceOutput } from "@/lib/agents/voice-guardrails";
 import { cn } from "@/lib/utils";
 
 const SUGGESTIONS = [
-  "I'm having a rough week. Help me reset.",
+  "I'm stuck / doubting / burnt out — help me reset.",
   "How do I stay motivated when pipeline is slow?",
   "Give me a Stoic reframe for something I can't control.",
   "What's one small win I can get today?",
@@ -28,10 +31,16 @@ function getMessageText(message: UIMessage): string {
   return message.role === "assistant" ? sanitizeVoiceOutput(raw) : raw;
 }
 
+function getCitations(message: UIMessage): string[] {
+  const meta = message.metadata as { citations?: string[] } | undefined;
+  return meta?.citations ?? [];
+}
+
 export default function CloudChatPanel() {
   const [input, setInput] = useState("");
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevStatus = useRef<string>("ready");
 
   const transport = useMemo(
     () =>
@@ -45,7 +54,11 @@ export default function CloudChatPanel() {
   const { messages, sendMessage, setMessages, status } = useChat({
     transport,
     onError: (err) => {
-      toast.error(err.message || "Cloud couldn't reach Danny. Try again.");
+      toast.error(
+        err.message.includes("429")
+          ? err.message
+          : err.message || "Cloud couldn't reach Danny. Try again.",
+      );
     },
   });
 
@@ -59,6 +72,17 @@ export default function CloudChatPanel() {
       })
       .finally(() => setHistoryLoaded(true));
   }, [setMessages]);
+
+  useEffect(() => {
+    if (prevStatus.current === "streaming" && status === "ready") {
+      fetch("/api/messages?skillId=cloud")
+        .then((r) => (r.ok ? r.json() : { messages: [] }))
+        .then((data) => {
+          if (data.messages?.length) setMessages(data.messages);
+        });
+    }
+    prevStatus.current = status;
+  }, [status, setMessages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -77,7 +101,7 @@ export default function CloudChatPanel() {
   if (!historyLoaded) {
     return (
       <div className="cloud-shell flex min-h-screen items-center justify-center">
-        <p className="text-sm text-[var(--cloud-muted)]">Opening the cloud…</p>
+        <PageLoader label="Opening the cloud…" variant="cloud" />
       </div>
     );
   }
@@ -128,9 +152,13 @@ export default function CloudChatPanel() {
       >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center pt-8 text-center sm:pt-16">
-            <DannyAvatar size="lg" className="mb-6 ring-4 ring-white/80" />
+            <DannyAvatar
+              size="lg"
+              variant="cloud"
+              className="mb-6 ring-4 ring-white/80"
+            />
             <h1 className="font-[family-name:var(--font-rethink)] text-3xl font-extrabold tracking-tight text-[var(--cloud-text)] sm:text-4xl">
-              What's on your mind?
+              What&apos;s on your mind?
             </h1>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--cloud-muted)]">
               Motivation, mindset, life, business, a bad day, a big decision.
@@ -172,13 +200,22 @@ export default function CloudChatPanel() {
                   >
                     {m.role === "assistant" && (
                       <div className="mb-2 flex items-center gap-2">
-                        <DannyAvatar size="xs" />
+                        <DannyAvatar size="xs" variant="cloud" />
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--cloud-muted)]">
                           Danny Cloud
                         </span>
                       </div>
                     )}
                     <div className="whitespace-pre-wrap">{getMessageText(m)}</div>
+                    {m.role === "assistant" && (
+                      <>
+                        <CitationChips
+                          citations={getCitations(m)}
+                          variant="cloud"
+                        />
+                        <MessageFeedback messageId={m.id} variant="cloud" />
+                      </>
+                    )}
                   </div>
                 </motion.div>
               ))}

@@ -17,6 +17,7 @@ export async function GET(req: Request) {
     id: m.id,
     role: m.role,
     parts: [{ type: "text" as const, text: m.content }],
+    metadata: m.citations?.length ? { citations: m.citations } : undefined,
   }));
 
   return Response.json({ messages });

@@ -1,14 +1,19 @@
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
-import { TOKEN_BUDGET } from "@/lib/agents/token-budget";
+import { TOKEN_BUDGET, fitSystemPrompt } from "@/lib/agents/token-budget";
 import { getChatModel, kimiInstantModeOptions } from "@/lib/agents/model";
 import {
   sanitizeVoiceOutput,
   VOICE_GUARDRAILS_COMPACT,
 } from "@/lib/agents/voice-guardrails";
 import { getSkill, type SkillId } from "@/lib/agents/skills";
-import { formatBrainHits } from "@/lib/brain/format-hits";
+import {
+  formatBrainHits,
+  toBrainCitations,
+} from "@/lib/brain/format-hits";
+import { buildBrainQuery } from "@/lib/brain/query-boost";
 import { searchBrain } from "@/lib/brain/search";
-import { getWorkspaceIdFromSession } from "@/lib/auth/session";
+import { checkAndIncrementDailyLimit } from "@/lib/auth/rate-limit";
+import { getClerkUserId, getWorkspaceIdFromSession } from "@/lib/auth/session";
 import {
   appendSession,
   buildMemoryPreamble,
@@ -39,6 +44,11 @@ function trimUiMessages(messages: UIMessage[]): UIMessage[] {
 
 export async function POST(req: Request) {
   try {
+    const userId = await getClerkUserId();
+    if (!userId) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const workspaceId = await getWorkspaceIdFromSession();
     if (!workspaceId) {
       return new Response("Unauthorized", { status: 401 });
@@ -49,14 +59,25 @@ export async function POST(req: Request) {
       return new Response("Workspace not found", { status: 404 });
     }
 
-    const { messages, skillId } = (await req.json()) as {
+    const { messages, skillId: rawSkillId } = (await req.json()) as {
       messages: UIMessage[];
       skillId?: SkillId;
     };
 
-    const skill = getSkill(skillId);
+    const skill = getSkill(rawSkillId);
     const isCloud = skill.id === "cloud";
-    const soul = isCloud ? await loadCloudBundle() : await loadSoulBundle({ compact: true });
+
+    const rateLimit = await checkAndIncrementDailyLimit(userId, skill.id);
+    if (!rateLimit.allowed) {
+      return new Response(
+        `Daily message limit reached (${rateLimit.limit}/day). Resets ${rateLimit.resetDate} UTC. For strategy, batch your questions — Danny works best with context, not spam.`,
+        { status: 429 },
+      );
+    }
+
+    const soul = isCloud
+      ? await loadCloudBundle()
+      : await loadSoulBundle({ compact: true });
     const history = await loadSession(workspaceId, {
       skillId: isCloud ? "cloud" : undefined,
     });
@@ -66,27 +87,33 @@ export async function POST(req: Request) {
     const lastUser = [...uiMessages].reverse().find((m) => m.role === "user");
     const lastUserText = lastUser ? messageText(lastUser.parts) : "";
 
-    const brainQuery = isCloud
-      ? `${lastUserText} motivation mindset support resilience stoic`
-      : lastUserText;
+    const brainQuery = buildBrainQuery(lastUserText, skill.id);
+    const excerptChars =
+      skill.id === "diagnostic"
+        ? TOKEN_BUDGET.brainExcerptCharsDiagnostic
+        : TOKEN_BUDGET.brainExcerptChars;
 
-    const brainHits =
+    const brainResults =
       brainQuery.length > 0
-        ? formatBrainHits(
-            await searchBrain(
-              brainQuery,
-              TOKEN_BUDGET.brainPrefetchLimit,
-              TOKEN_BUDGET.brainExcerptChars,
-            ),
+        ? await searchBrain(
+            brainQuery,
+            TOKEN_BUDGET.brainPrefetchLimit,
+            excerptChars,
+            { preferBrainSources: !isCloud },
           )
-        : "";
+        : [];
+
+    const brainHits = formatBrainHits(brainResults);
+    const brainCitations = toBrainCitations(brainResults);
 
     const replyRules = isCloud
-      ? `Reply warm and brief (~150 words). Acknowledge → framework → one small move. Danny voice, lighter.`
+      ? `Reply warm and brief (~150 words). Acknowledge → framework → one small move. Danny voice, lighter.
+Always end with a line starting **Try this:** followed by one concrete small action they can do today.`
       : `Reply in Danny's voice: short paragraphs, one move to end. Stay under ~350 words unless they ask for depth.
-When relevant, synthesize expert frameworks (Hormozi, Brunson, Robbins, etc.) — name them, apply to this founder, never book summaries.`;
+When relevant, synthesize expert frameworks (Hormozi, Brunson, Robbins, etc.) — name them, apply to this founder, never book summaries.
+Always end with a line starting **Your one move:** followed by one specific action tied to their workspace context this week.`;
 
-    const system = `${VOICE_GUARDRAILS_COMPACT}
+    const core = `${VOICE_GUARDRAILS_COMPACT}
 
 ${soul}
 
@@ -94,13 +121,17 @@ ${PRIVACY_COMPACT}
 
 ${skill.prompt}
 
-${workspaceContextBlock(workspace)}
+${workspaceContextBlock(workspace)}`;
 
-${memory}
+    const system = fitSystemPrompt(
+      core,
+      memory,
+      brainHits,
+      replyRules,
+      TOKEN_BUDGET.maxSystemChars,
+    );
 
-${brainHits}
-
-${replyRules}`;
+    const citationTitles = brainCitations.map((c) => c.title);
 
     const result = streamText({
       model: getChatModel(),
@@ -113,7 +144,10 @@ ${replyRules}`;
         if (lastUserText) {
           await appendSession(workspaceId, [
             newMessage("user", lastUserText, { skillId: skill.id }),
-            newMessage("assistant", cleaned, { skillId: skill.id }),
+            newMessage("assistant", cleaned, {
+              skillId: skill.id,
+              citations: citationTitles.length ? citationTitles : undefined,
+            }),
           ]);
         }
       },
