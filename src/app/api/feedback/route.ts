@@ -30,9 +30,13 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, stored: false });
   }
 
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const messageId = uuidPattern.test(body.messageId) ? body.messageId : null;
+
   const { error } = await getSupabase().from("feedback").insert({
     workspace_id: workspaceId,
-    message_id: body.messageId,
+    message_id: messageId,
     rating: body.rating,
     note: body.note ?? null,
   });

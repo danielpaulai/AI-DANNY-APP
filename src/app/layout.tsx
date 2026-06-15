@@ -29,10 +29,21 @@ export const metadata: Metadata = {
   title: "AI Danny",
   description:
     "Serious about your business. Dry wit about everything else. Danny's methodology, applied to your workspace.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "AI Danny",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/icons/app-icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icons/app-icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#e90d41",
+  themeColor: "#6366f1",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
