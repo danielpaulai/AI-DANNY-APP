@@ -1,11 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AI Danny">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1a1f2e"/>
-      <stop offset="100%" stop-color="#252b3d"/>
+      <stop offset="0%" stop-color="#eef6fc"/>
+      <stop offset="45%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f4f0ff"/>
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="196" fill="none" stroke="#c7d2fe" stroke-width="8"/>
   <text
     x="256"
     y="340"
@@ -13,6 +15,6 @@
     font-family="system-ui, -apple-system, sans-serif"
     font-size="280"
     font-weight="800"
-    fill="#e90d41"
+    fill="#4f46e5"
   >D</text>
 </svg>
